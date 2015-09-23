@@ -13,6 +13,9 @@ import collections
 import yum
 import boto
 import subprocess
+from boto.sqs.jsonmessage import json
+
+from boto.s3.key import Key
 
 lib_root = os.path.dirname(os.path.dirname(__file__))
 
@@ -26,6 +29,25 @@ import createrepo
 urlparse.uses_relative.append('s3')
 urlparse.uses_netloc.append('s3')
 
+
+def read_message(queue_name):
+    conn_sqs = boto.connect_sqs()
+    queue = conn_sqs.get_queue(queue_name)
+    messages = queue.get_messages()
+    message = messages[0]
+    message_body = json.loads(message.get_body())
+    message.delete()
+    return message_body['Records'][0]['s3']['object']['key']
+
+def get_package(bucket_name, keyfile):
+    filenames = []
+    conn_s3 = boto.connect_s3()
+    bucket = conn_s3.get_bucket(bucket_name)
+    key = Key(bucket, keyfile)
+    filename =  keyfile.split('/')[-1] #RPM name
+    key.get_contents_to_filename(filename)
+    filenames.append(filename)
+    return filenames
 
 class LoggerCallback(object):
     def errorlog(self, message):
@@ -214,10 +236,10 @@ def update_repodata(repopath, rpmfiles, options):
     mdgen.doFinalMove()
 
     # Upload rpm files to destination
-    for rpmfile in rpmfiles:
-        rpmfile = os.path.realpath(rpmfile)
-        logging.info("rpmfile: %s", rpmfile)
-        s3grabber.upload(rpmfile, os.path.basename(rpmfile))
+    #for rpmfile in rpmfiles:
+    #    rpmfile = os.path.realpath(rpmfile)
+    #    logging.info("rpmfile: %s", rpmfile)
+        # s3grabber.upload(rpmfile, os.path.basename(rpmfile))
 
 
     # Generate repodata/repomd.xml.asc
@@ -236,14 +258,18 @@ def main(options, args):
         level=logging.getLevelName(loglevel),
         format='%(asctime)s %(levelname)s %(message)s',
     )
-
-    update_repodata(options.repopath, args, options)
+    
+    keyfile = read_message(options.queue)
+    filename = get_package(options.bucket,keyfile)
+    update_repodata(options.repopath, filename, options)
 
 
 if __name__ == '__main__':
+    
     parser = optparse.OptionParser()
     parser.add_option('-b', '--bucket', default='my-bucket')
     parser.add_option('-p', '--repopath', default='')
+    parser.add_option('-q', '--queue', default='')
     parser.add_option('-k', '--keep', type='int', default=2)
     parser.add_option('-v', '--verbose', action='count', default=0)
     parser.add_option('--visibility', default='private')
