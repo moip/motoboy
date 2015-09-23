@@ -17,7 +17,7 @@ If you're looking for the same kind of tool, but for APT repositories, I can rec
 
 ## Installation
 
-    git clone https://github.com/crohr/rpm-s3 --recurse-submodules
+    git clone https://github.com/moip/rpm-s3 --recurse-submodules
 
 ## Usage
 
