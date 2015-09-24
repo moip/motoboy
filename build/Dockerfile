@@ -11,6 +11,6 @@ RUN		yum install -y gcc gcc-c++ make ruby-devel rubygem-bundler patch tar			&&	\
 		gem install --no-ri --no-rdoc -v '< 2' aws-sdk						&&	\
 		curl -O https://bootstrap.pypa.io/get-pip.py						&&	\
 		python get-pip.py									&&	\
-		pip install awscli									&&	\
+		pip install awscli
 
 WORKDIR		/
