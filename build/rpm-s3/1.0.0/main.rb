@@ -7,7 +7,7 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
   section       'admin'
 
   source        "https://s3.amazonaws.com/rpm-s3/rpm-s3-#{version}.tar.gz"
-  sha256        "6a25a18e838656e727e5fc55582bd62d1ff08390c088cc2ee6fc25aee2c122ae"
+  sha256        "710c5153100a59593afdaf2ffe5b4a63604e23f3d764150999693db9ff3c1f36"
 
  # pre_install   "files/preinstall #{version}"
  # post_install  'files/postinstall'
