@@ -10,7 +10,7 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
   sha256        "710c5153100a59593afdaf2ffe5b4a63604e23f3d764150999693db9ff3c1f36"
 
  # pre_install   "files/preinstall #{version}"
- # post_install  'files/postinstall'
+  post_install  'files/postinstall'
 
   build_depends 'createrepo', 'python-boto', 'python-createrepo_c', 'git'
 

@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+cd /rpm-s3/build/rpm-s3/1.0.0/pkg
+
+pkg=`ls`
+
+aws s3 cp $pkg  s3://rpm-s3/$pkg --acl public-read-write
