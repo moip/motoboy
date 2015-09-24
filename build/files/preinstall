@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+file="rpm-s3-$1.tar.gz"
+
+cd /
+git clone https://github.com/moip/rpm-s3 --recurse-submodules
+
+tar -czvf $file rpm-s3
+
+aws s3 cp  $file s3://rpm-s3/$file --acl public-read-write

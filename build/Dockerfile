@@ -1,4 +1,4 @@
-# fwynyk/fpm-cookery-rpm-s3
+# fwynyk/fpm-cookery-aws-cli
 # VERSION	0.0.2
 
 FROM		centos:7
