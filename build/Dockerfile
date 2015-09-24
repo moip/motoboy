@@ -1,5 +1,5 @@
 # fwynyk/fpm-cookery-aws-cli
-# VERSION	0.0.2
+# VERSION	0.0.1
 
 FROM		centos:7
 MAINTAINER	Fred Wynyk <fred.wynyk@gmail.com>
@@ -10,7 +10,7 @@ RUN		yum install -y gcc gcc-c++ make ruby-devel rubygem-bundler patch tar			&&	\
 		gem install --no-ri --no-rdoc fpm-cookery						&&	\
 		gem install --no-ri --no-rdoc -v '< 2' aws-sdk						&&	\
 		curl -O https://bootstrap.pypa.io/get-pip.py						&&	\
+		python get-pip.py									&&	\
 		pip install awscli									&&	\
 
 WORKDIR		/
-
