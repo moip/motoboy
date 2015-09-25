@@ -29,17 +29,20 @@ The next step will be create the tar.gz file and copy it to rpm-s3 bucket. It ne
 	aws s3 cp  rpm-s3-<version>.tar.gz s3://rpm-s3/rpm-s3-<version>.tar.gz --acl public-read-write	
 
 
-Create the dir of the new version. You can copy the `main.rb` and the symblic link for the `files` dir from older versions.
+Create the dir of the new version:
 
 	cd rpm-s3/build/
 	mkdir rpm-s3/x.x.x
 
-**OBS: Don't forget to set the right version of the package in `main.rb`.**
+OBS: You can copy the `main.rb` and the symblic link for the `files` dir from older versions. **Don't forget to set the right version of the package in `main.rb`.**
 
 
 Now you can build the RPM:
 
 	fpm-cook package -t rpm rpm-s3/<version>/main.rb
+
+
+The final package will be inside this dir: **/rpm-s3/build/rpm-s3/<version>/pkg/rpm-s3-<version>.x86_64.rpm**. The `post_install` script will upload the new RPM into the rpm-s3 bucket.
 
 
 # TODO
