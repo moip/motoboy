@@ -1,8 +1,8 @@
-# fwynyk/fpm-cookery-aws-cli
+# moip/fpm-cookery-aws-cli
 # VERSION	0.0.1
 
 FROM		centos:7
-MAINTAINER	Fred Wynyk <fred.wynyk@gmail.com>
+MAINTAINER	"Moip Platform"
 
 RUN		yum install -y gcc gcc-c++ make ruby-devel rubygem-bundler patch tar epel-release	&&	\
 		rpm -Uvh http://dl.fedoraproject.org/pub/epel/7/x86_64/l/lbzip2-2.5-1.el7.x86_64.rpm	&&	\
