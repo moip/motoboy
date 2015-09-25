@@ -31,7 +31,7 @@ OBS: The package needs to be in the motoboy root dir.
 
 The [installation and usage](https://github.com/moip/motoboy#installation) section above was described just to you know how it works. The [Dokerfile](https://github.com/moip/motoboy/blob/master/Dockerfile) and the [Lambda](https://github.com/moip/motoboy/tree/master/lambda) function abstract the raw mode above. You really would like to do this way.
 
-OBS: Check if the [moip/motoboy]() image exists before continue.
+OBS: Check if the docker image exists in Docker Hub.
 
 
 1. With the `Requirement 3` built, you can just put a new package into the S3 bucket `moip-packages-repository`. 
