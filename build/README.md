@@ -1,6 +1,6 @@
 # Using fpm-cookery to build the RPM file
 
-#### NOTE: You need to replace the <version> field to the right version in all the places which was mentioned.  
+##### NOTE: You need to replace the <version> field to the right version in all the places which was mentioned.  
 
 Use the `Dockerfile` to build all the fpm-cookery environment, or just run the actual image: [fwynyk/fpm-cookery-aws-cli](https://hub.docker.com/r/fwynyk/fpm-cookery-aws-cli/)
 
