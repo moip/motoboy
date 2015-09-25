@@ -29,7 +29,7 @@ OBS: The package needs to be in the motoboy root dir.
 
 ## A real installation and usage
 
-The [installation and usage](https://github.com/moip/motoboy#installation) section above was described just to you know how it works. The [Dokerfile](https://github.com/moip/motoboy/blob/master/Dockerfile) and the [Lambda]() function abstract the raw mode above. You really would like to do this way.
+The [installation and usage](https://github.com/moip/motoboy#installation) section above was described just to you know how it works. The [Dokerfile](https://github.com/moip/motoboy/blob/master/Dockerfile) and the [Lambda](https://github.com/moip/motoboy/tree/master/lambda) function abstract the raw mode above. You really would like to do this way.
 
 OBS: Check if the [moip/motoboy]() image exists before continue.
 
