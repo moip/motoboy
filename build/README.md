@@ -1,4 +1,4 @@
-# Using fpm-cockery to build the RPM file
+# Using fpm-cookery to build the RPM file
 
 Use the `Dockerfile` to build all the fpm-cookery environment, or just run the actual image: [fwynyk/fpm-cookery-aws-cli](https://hub.docker.com/r/fwynyk/fpm-cookery-aws-cli/)
 
