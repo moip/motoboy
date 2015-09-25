@@ -1,6 +1,6 @@
 {
-    "queue": "https://sqs.us-east-1.amazonaws.com/026783351078/s3yum-updater",
-    "task": "s3yum-updater",
+    "queue": "https://sqs.us-east-1.amazonaws.com/026783351078/motoboy-packages",
+    "task": "motoboy-consumer",
     "cluster": "moip-cluster-container-services",
     "s3_key_suffix_whitelist": [".rpm"]
 }
