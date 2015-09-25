@@ -27,7 +27,7 @@ Create the dir of the new version. You can copy the `main.rb` and the symblic li
 	cd rpm-s3/build/
 	mkdir rpm-s3/x.x.x
 
-*OBS: Don't forget to set the right version of the package in `main.rb`.* 
+**OBS: Don't forget to set the right version of the package in `main.rb`.**
 
 Now you can build the RPM:
 	
