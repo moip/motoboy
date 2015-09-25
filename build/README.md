@@ -42,7 +42,7 @@ Now you can build the RPM:
 	fpm-cook package -t rpm rpm-s3/<version>/main.rb
 
 
-The final package will be inside this dir: **/rpm-s3/build/rpm-s3/<version>/pkg/rpm-s3-<version>.x86_64.rpm**. The `post_install` script will upload the new RPM into the rpm-s3 bucket.
+The final package will be inside this dir: **`/rpm-s3/build/rpm-s3/<version>/pkg/rpm-s3-<version>.x86_64.rpm`**. The `post_install` script will upload the new RPM into the rpm-s3 bucket.
 
 
 # TODO
