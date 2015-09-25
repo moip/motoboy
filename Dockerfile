@@ -9,7 +9,7 @@ WORKDIR /
 
 RUN     yum install epel-release -y 					&&	\
 	yum install createrepo python-boto python-createrepo_c 		&& 	\
-	git clone https://github.com/moip/rpm-s3 --recurse-submodules	&&	\
+	git clone https://github.com/moip/rpm-s3 --recurse-submodules
  
 
 WORKDIR /rpm-s3
