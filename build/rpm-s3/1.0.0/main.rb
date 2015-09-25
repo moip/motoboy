@@ -33,4 +33,5 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
     rpm-s3.mkdir
     whole_path = File.join(path)
     rpm-s3.install(whole_path)
+  end
 end
