@@ -1,3 +1,6 @@
+# fwynyk/rpm-s3
+# VERSION       1.0.0
+
 FROM centos:latest
 
 MAINTAINER "Moip Platform"
