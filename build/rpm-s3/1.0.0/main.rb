@@ -19,12 +19,18 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
 
   def install
     path = get_activemq_path
+    
+    install_whole_path(path)
   end
   
   def get_activemq_path
-  path = File.join(File.basename(source, '.tar.gz'))
-
-  builddir(path)
+    path = File.join(File.basename(source, '.tar.gz'))
+    
+    builddir(path)
   end
-
+  
+  def install_whole_path
+    rpm-s3.mkdir
+    whole_path = File.join(path)
+    rpm-s3.install(whole_path)
 end
