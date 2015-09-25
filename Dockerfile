@@ -7,11 +7,11 @@ MAINTAINER "Moip Platform"
 
 WORKDIR /
 
-RUN     yum install epel-release -y 					&&	\
-	yum install createrepo python-boto python-createrepo_c git	&& 	\
-	git clone https://github.com/moip/rpm-s3 --recurse-submodules
- 
+RUN     yum install epel-release -y                                     &&      \
+        yum install createrepo python-boto python-createrepo_c git -y   &&      \
+        git clone https://github.com/moip/rpm-s3 --recurse-submodules
+
 
 WORKDIR /rpm-s3
 
-ENTRYPOINT ["/rpm-s3/bin/rpm-s3"]
+CMD     ["/rpm-s3/run.sh"]
