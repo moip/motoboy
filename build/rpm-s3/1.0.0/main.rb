@@ -18,6 +18,13 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
   end
 
   def install
+    path = get_activemq_path
+  end
+  
+  def get_activemq_path
+  path = File.join(File.basename(source, '.tar.gz'))
+
+  builddir(path)
   end
 
 end
