@@ -12,7 +12,7 @@ class RPM_S3_1_0_0 < FPM::Cookery::Recipe
  # pre_install   "files/preinstall #{version}"
   post_install  'files/postinstall'
 
-  build_depends 'createrepo', 'python-boto', 'python-createrepo_c', 'git'
+  build_depends 'createrepo', 'python-boto', 'python-createrepo_c'
 
   def build
   end
