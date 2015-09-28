@@ -1,3 +1,3 @@
 #!/bin/bash
 
-/motoboy/bin/motoboy -b s3yum-updater -q s3yum-updater -p testing/noarch
+/motoboy/bin/motoboy -b moip-packages-repository -q motoboy-packages -p packages
