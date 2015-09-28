@@ -1,0 +1,281 @@
+#!/usr/bin/env python
+"""CLI for serialising metadata updates on an s3-hosted yum repository.
+"""
+import os
+import sys
+import time
+import urlparse
+import tempfile
+import shutil
+import optparse
+import logging
+import collections
+import yum
+import boto
+import subprocess
+from boto.sqs.jsonmessage import json
+
+from boto.s3.key import Key
+
+lib_root = os.path.dirname(os.path.dirname(__file__))
+
+sys.path.insert(1, os.path.join(lib_root, "vendor/pexpect"))
+import pexpect
+
+sys.path.insert(1, os.path.join(lib_root, "vendor/createrepo"))
+import createrepo
+
+# Hack for creating s3 urls
+urlparse.uses_relative.append('s3')
+urlparse.uses_netloc.append('s3')
+
+
+def read_message(queue_name):
+    conn_sqs = boto.connect_sqs()
+    queue = conn_sqs.get_queue(queue_name)
+    messages = queue.get_messages()
+    message = messages[0]
+    message_body = json.loads(message.get_body())
+    message.delete()
+    return message_body['Records'][0]['s3']['object']['key']
+
+def get_package(bucket_name, keyfile):
+    filenames = []
+    conn_s3 = boto.connect_s3()
+    bucket = conn_s3.get_bucket(bucket_name)
+    key = Key(bucket, keyfile)
+    filename =  keyfile.split('/')[-1] #RPM name
+    key.get_contents_to_filename(filename)
+    filenames.append(filename)
+    return filenames
+
+class LoggerCallback(object):
+    def errorlog(self, message):
+        logging.error(message)
+
+    def log(self, message):
+        message = message.strip()
+        if message:
+            logging.debug(message)
+
+
+class S3Grabber(object):
+    def __init__(self, baseurl, visibility):
+        logging.info('S3Grabber: %s', baseurl)
+        base = urlparse.urlsplit(baseurl)
+        self.baseurl = baseurl
+        self.basepath = base.path.lstrip('/')
+        self.bucket = getclient(base)
+        self.visibility = visibility
+
+    def check(self, url):
+        if url.startswith(self.baseurl):
+            url = url[len(self.baseurl):].lstrip('/')
+        logging.info("checking if key exists: %s", os.path.join(self.basepath, url))
+        return self.bucket.get_key(os.path.join(self.basepath, url))
+
+    def urlgrab(self, url, filename, **kwargs):
+        logging.info('urlgrab: %s', filename)
+        key = self.check(url)
+        if not key:
+            raise createrepo.grabber.URLGrabError(14, '%s not found' % url)
+        logging.info('downloading: %s', key.name)
+        key.get_contents_to_filename(filename)
+        return filename
+
+    def syncdir(self, dir, url):
+        """Copy all files in dir to url, removing any existing keys."""
+        base = os.path.join(self.basepath, url)
+        existing_keys = list(self.bucket.list(base))
+        new_keys = []
+        for filename in sorted(os.listdir(dir)):
+            source = os.path.join(dir, filename)
+            target = os.path.join(base, filename)
+            key = self.bucket.new_key(target)
+            key.set_contents_from_filename(source)
+            key.set_acl(self.visibility)
+            new_keys.append(key.name)
+            logging.info('uploading: %s from: %s', key.name, source)
+        for key in existing_keys:
+            if key.name not in new_keys:
+                key.delete()
+                logging.info('removing: %s', key.name)
+
+    def upload(self, file, url):
+        """Copy file to url."""
+        target = os.path.join(self.basepath, url)
+        logging.info("upload: %s to %s", (file, target))
+        filename = os.path.basename(file)
+        key = self.bucket.new_key(target)
+        key.set_contents_from_filename(file)
+        key.set_acl(self.visibility)
+
+
+class FileGrabber(object):
+    def __init__(self, baseurl):
+        logging.info('FileGrabber: %s', baseurl)
+        self.basepath = urlparse.urlsplit(baseurl).path
+        logging.info('basepath: %s', self.basepath)
+
+    def urlgrab(self, url, filename, **kwargs):
+        """Expects url of the form: file:///path/to/file"""
+        filepath = urlparse.urlsplit(url).path
+        realfilename = os.path.join(self.basepath, filepath)
+        logging.info('fetching: %s', realfilename)
+        # The filename name is REALLY important for createrepo as it derives
+        # the base path from its own tempdir, etc.
+        os.symlink(realfilename, filename)
+        return filename
+
+
+def getclient(base):
+    if os.getenv('AWS_ACCESS_KEY'):
+        return boto.connect_s3(os.getenv('AWS_ACCESS_KEY'), os.getenv('AWS_SECRET_KEY')).get_bucket(base.netloc)
+    else:
+        return boto.connect_s3().get_bucket(base.netloc)
+
+
+def sign(rpmfile):
+    """Requires a proper ~/.rpmmacros file. See <http://fedoranews.org/tchung/gpg/>"""
+    # TODO: check if file is indeed signed
+    cmd = "rpm --resign '%s'" % rpmfile
+    logging.info(cmd)
+    try:
+        child = pexpect.spawn(cmd)
+        child.expect('Enter pass phrase: ')
+        child.sendline('')
+        child.expect(pexpect.EOF)
+    except pexpect.EOF, e:
+        print "Unable to sign package '%s' - %s" % (rpmfile, child.before)
+        logging.error("Unable to sign package: %s", e)
+        exit(1)
+
+def sign_metadata(repomdfile):
+    """Requires a proper ~/.rpmmacros file. See <http://fedoranews.org/tchung/gpg/>"""
+    cmd = ["gpg", "--detach-sign", "--armor", repomdfile]
+    logging.info(cmd)
+    try:
+        subprocess.check_call(cmd)
+        logging.info("Successfully signed repository metadata file")
+    except subprocess.CalledProcessError, e:
+        print "Unable to sign repository metadata '%s'" % (repomdfile)
+        logging.error("Unable to sign repository metadata: %s", e)
+        exit(1)
+
+def setup_repository(repo, repopath):
+    """Make sure a repo is present at repopath"""
+    key = repo._grab.check("repodata/repomd.xml")
+    if key:
+        logging.info("Existing repository detected.")
+    else:
+        path_to_empty_repo = os.path.join(lib_root, "empty-repo", "repodata")
+        logging.info("Empty repository detected. Initializing with empty repodata...")
+        repo._grab.syncdir(path_to_empty_repo, "repodata")
+
+def update_repodata(repopath, rpmfiles, options):
+    logging.info('rpmfiles: %s', rpmfiles)
+    tmpdir = tempfile.mkdtemp()
+    s3base = urlparse.urlunsplit(('s3', options.bucket, repopath, '', ''))
+    s3grabber = S3Grabber(s3base, options.visibility)
+    filegrabber = FileGrabber("file://" + os.getcwd())
+
+    # Set up temporary repo that will fetch repodata from s3
+    yumbase = yum.YumBase()
+    yumbase.preconf.disabled_plugins = '*'
+    yumbase.conf.cachedir = os.path.join(tmpdir, 'cache')
+    yumbase.repos.disableRepo('*')
+    repo = yumbase.add_enable_repo('s3')
+    repo._grab = s3grabber
+
+    setup_repository(repo, repopath)
+
+    # Ensure that missing base path doesn't cause trouble
+    repo._sack = yum.sqlitesack.YumSqlitePackageSack(
+        createrepo.readMetadata.CreaterepoPkgOld)
+
+    # Create metadata generator
+    mdconf = createrepo.MetaDataConfig()
+    mdconf.directory = tmpdir
+    mdgen = createrepo.MetaDataGenerator(mdconf, LoggerCallback())
+    mdgen.tempdir = tmpdir
+
+    # Combine existing package sack with new rpm file list
+    new_packages = []
+    for rpmfile in rpmfiles:
+        rpmfile = os.path.realpath(rpmfile)
+        logging.info("rpmfile: %s", rpmfile)
+
+        if options.sign:
+            sign(rpmfile)
+
+        mdgen._grabber = filegrabber
+        # please, don't mess with my path in the <location> tags of primary.xml.gz
+        relative_path = "."
+        newpkg = mdgen.read_in_package("file://" + rpmfile, relative_path)
+        mdgen._grabber = s3grabber
+
+        # don't put a base url in <location> tags of primary.xml.gz
+        newpkg._baseurl = None
+        older_pkgs = yumbase.pkgSack.searchNevra(name=newpkg.name)
+
+        # Remove older versions of this package (or if it's the same version)
+        for i, older in enumerate(reversed(older_pkgs), 1):
+            if i > options.keep or older.pkgtup == newpkg.pkgtup:
+                yumbase.pkgSack.delPackage(older)
+                logging.info('ignoring: %s', older.ui_nevra)
+        ## The package is now removed if it has the same name
+        ## If we passed -d true, then we don't want to add it back
+        ## if we didn't then we wnat to include the package
+        if options.delete is False:
+            new_packages.append(newpkg)
+    mdconf.pkglist = list(yumbase.pkgSack) + new_packages
+
+    # Write out new metadata to tmpdir
+    mdgen.doPkgMetadata()
+    mdgen.doRepoMetadata()
+    mdgen.doFinalMove()
+
+    # Upload rpm files to destination
+    #for rpmfile in rpmfiles:
+    #    rpmfile = os.path.realpath(rpmfile)
+    #    logging.info("rpmfile: %s", rpmfile)
+        # s3grabber.upload(rpmfile, os.path.basename(rpmfile))
+
+
+    # Generate repodata/repomd.xml.asc
+    if options.sign:
+        sign_metadata(os.path.join(tmpdir, 'repodata', 'repomd.xml'))
+
+    # Replace metadata on s3
+    s3grabber.syncdir(os.path.join(tmpdir, 'repodata'), 'repodata')
+
+    shutil.rmtree(tmpdir)
+
+def main(options, args):
+    loglevel = ('WARNING', 'INFO', 'DEBUG')[min(2, options.verbose)]
+    logging.basicConfig(
+        filename=options.logfile,
+        level=logging.getLevelName(loglevel),
+        format='%(asctime)s %(levelname)s %(message)s',
+    )
+    
+    keyfile = read_message(options.queue)
+    filename = get_package(options.bucket,keyfile)
+    update_repodata(options.repopath, filename, options)
+
+
+if __name__ == '__main__':
+    
+    parser = optparse.OptionParser()
+    parser.add_option('-b', '--bucket', default='my-bucket')
+    parser.add_option('-p', '--repopath', default='')
+    parser.add_option('-q', '--queue', default='')
+    parser.add_option('-k', '--keep', type='int', default=2)
+    parser.add_option('-v', '--verbose', action='count', default=0)
+    parser.add_option('--visibility', default='private')
+    parser.add_option('-s', '--sign', action='count', default=0)
+    parser.add_option('-l', '--logfile')
+    parser.add_option('-d', '--delete', default=False)
+    options, args = parser.parse_args()
+    main(options, args)
+
