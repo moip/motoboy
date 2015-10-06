@@ -15,7 +15,7 @@ It also gives you a Dockerfile and a lambda function to build a queue/consumer s
         export AWS_ACCESS_KEY="key"
         export AWS_SECRET_KEY="secret"
 
-3. You'll need to build the environment: ECS, Lambda, SQS and S3. You can use our Terraform recipes [here](https://github.com/moip/recipes-non-pci/tree/master/terraform/aws/hybrid/services/motoboy):
+3. You'll need to build the environment: ECS, Lambda, SQS and S3. You can use our Terraform recipes [here](https://github.com/moip/recipes-non-pci/tree/master/terraform/aws/hybrid/services/motoboy).
 
 ## A raw installation and usage 
 
